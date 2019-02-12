@@ -1,9 +1,8 @@
 # LIS2MDL
 Arduino library for the LIS2MDL magnetometer with communication over SPI / I2C
 
-Heavily inspired by the [SparkFun LSM6DS3 library](https://github.com/sparkfun/SparkFun_LSM6DS3_Arduino_Library)
-
-Calibration code adapted from [Kris Winer's library](https://github.com/kriswiner/LSM6DSM_LIS2MDL_LPS22HB)
+* Heavily inspired by the [SparkFun LSM6DS3 library](https://github.com/sparkfun/SparkFun_LSM6DS3_Arduino_Library)
+* Calibration code adapted from [Kris Winer's library](https://github.com/kriswiner/LSM6DSM_LIS2MDL_LPS22HB)
 
 ## Usage
 
@@ -37,7 +36,7 @@ void loop() {
   x = readFloatMagX();
   y = readFloatMagY();
   z = readFloatMagZ();
-  
+
   Serial.print("x: ");
   Serial.print(x);
   Serial.print(" y: ");
