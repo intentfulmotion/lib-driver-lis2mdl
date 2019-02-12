@@ -211,9 +211,9 @@ struct MagSensorSettings {
 }
 
 class LIS2MDL {
-  uint8_t deviceId = 0x40;          // 01000000b
+  uint8_t deviceId = 0x40;              // 01000000b
   comm_mode_t commMode;
-  uint8_t address;                  // chip select for SPI, I2C address for I2C
+  uint8_t address;                      // chip select for SPI, I2C address for I2C
 
   mag_status_t wireUp();
 
@@ -232,6 +232,7 @@ class LIS2MDL {
     uint16_t allOnesCounter;
     uint16_t nonSuccessCounter;
 
+    mag_status_t begin();
     void calibrate(uint32_t reads = 4000);
 
     int16_t readRawMagX();
@@ -245,8 +246,4 @@ class LIS2MDL {
     int16_t readRawTemp();
     float readTempC();
     float readTempF();
-
-
-    mag_status_t begin();
-
 }

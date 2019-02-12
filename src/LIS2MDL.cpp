@@ -206,12 +206,12 @@ mag_status_t LIS2MDL::readRegion(lis2mdlRegisters_t offset, uint8_t *output, uin
 
   switch (commMode) {
     case I2C_MODE:
-      Wire.beginTransmission(I2CAddress);
+      Wire.beginTransmission(address);
       Wire.write(offset);
       if(Wire.endTransmission() != 0)
-        status = IMU_HW_ERROR;
+        status = MAG_HW_ERROR;
       else {
-        Wire.requestFrom(I2CAddress, length);
+        Wire.requestFrom(address, length);
         while ((Wire.available()) && (i < length)) {
           c = Wire.read();
           *outputPointer = c;
@@ -234,7 +234,7 @@ mag_status_t LIS2MDL::readRegion(lis2mdlRegisters_t offset, uint8_t *output, uin
         i++;
       }
       if(tempFFCounter == i)
-        status = IMU_ALL_ONES_WARNING;
+        status = MAG_ALL_ONES_WARNING;
 
       digitalWrite(chipSelectPin, HIGH);
       break;
