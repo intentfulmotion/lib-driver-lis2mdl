@@ -47,4 +47,4 @@ void loop() {
 ```
 
 # License Information
-This code is released under [the MIT License](LICENSE).
+This code is released under [the MIT License](LICENSE.md).
