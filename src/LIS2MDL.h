@@ -232,7 +232,7 @@ class LIS2MDL {
     uint16_t allOnesCounter;
     uint16_t nonSuccessCounter;
 
-    void calibrate();
+    void calibrate(uint32_t reads = 4000);
 
     int16_t readRawMagX();
     int16_t readRawMagY();

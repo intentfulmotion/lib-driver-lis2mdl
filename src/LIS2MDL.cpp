@@ -73,6 +73,43 @@ mag_status_t LIS2MDL::wireUp() {
   return result;
 }
 
+void calibrate(uint32_t reads) {
+  int32_t rawMagBias[3] = {0, 0, 0}, rawMagScale = {0, 0, 0};
+  int16_t rawMagMax[3] = {-32767, -32767, -32767}, rawMagMin[3] = {32767, 32767, 32767}, temp = {0, 0, 0};
+
+  // calculate mins and maxes for X/Y/Z axes
+  for (int i = 0; i < 4000; i++) {
+    temp[0] = readRawMagX();
+    temp[1] = readRawMagY();
+    temp[2] = readRawMagZ();
+    for (int j = 0; j < 3; j++) {
+      if (temp[j] > rawMagMax[j]) rawMagMax = temp[j];
+      if (temp[j] < rawMagMin[j]) rawMagMin = temp[j];
+    }
+    delay(12);
+  }
+
+  rawMagBias[0]  = (rawMagMax[0] + rawMagMin[0])/2;  // get average x mag bias in counts
+  rawMagBias[1]  = (rawMagMax[1] + rawMagMin[1])/2;  // get average y mag bias in counts
+  rawMagBias[2]  = (rawMagMax[2] + rawMagMin[2])/2;  // get average z mag bias in counts
+  
+  settings.magBiasX = (float) rawMagBias[0] * _mRes;  // save mag biases in G for main program
+  settings.magBiasY = (float) rawMagBias[1] * _mRes;   
+  settings.magBiasZ = (float) rawMagBias[2] * _mRes;  
+      
+  // Get soft iron correction estimate
+  rawMagScale[0]  = (rawMagMax[0] - rawMagMin[0])/2;  // get average x axis max chord length in counts
+  rawMagScale[1]  = (rawMagMax[1] - rawMagMin[1])/2;  // get average y axis max chord length in counts
+  rawMagScale[2]  = (rawMagMax[2] - rawMagMin[2])/2;  // get average z axis max chord length in counts
+
+  float avg_rad = rawMagScale[0] + rawMagScale[1] + rawMagScale[2];
+  avg_rad /= 3.0f;
+
+  settings.magScaleX = avg_rad/((float)mag_scale[0]);
+  settings.magScaleY = avg_rad/((float)mag_scale[1]);
+  settings.magScaleZ = avg_rad/((float)mag_scale[2]);
+}
+
 int16_t LIS2MDL::readRawMagX() {
   return readInt16(LIS2MDL_OUT_X_REG_L);
 }
