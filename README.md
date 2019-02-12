@@ -37,6 +37,7 @@ void loop() {
   x = readFloatMagX();
   y = readFloatMagY();
   z = readFloatMagZ();
+  
   Serial.print("x: ");
   Serial.print(x);
   Serial.print(" y: ");
