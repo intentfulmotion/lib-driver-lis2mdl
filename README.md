@@ -11,10 +11,11 @@ Arduino library for the LIS2MDL magnetometer with communication over SPI / I2C
 #include <Arduino.h>
 #include <LIS2MDL.h>
 
+LIS2MDL mag;
+
 float x, y, z;
 
 void setup() {
-  LIS2MDL mag;
   Serial.begin(115200);
 
   // configure the magnetometer
@@ -38,9 +39,9 @@ void setup() {
 }
 
 void loop() {
-  x = readFloatMagX();
-  y = readFloatMagY();
-  z = readFloatMagZ();
+  x = mag.readFloatMagX();
+  y = mag.readFloatMagY();
+  z = mag.readFloatMagZ();
 
   Serial.print("x: ");
   Serial.print(x);
