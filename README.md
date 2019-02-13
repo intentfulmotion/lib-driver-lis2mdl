@@ -18,7 +18,7 @@ void setup() {
   Serial.begin(115200);
 
   // configure the magnetometer
-  // settings below are default setting
+  // settings below are default settings
   mag.settings.tempCompensationEnabled = LIS2MDL_TEMP_COMPENSATION_ENABLED;
   mag.settings.magSampleRate = LIS2MDL_MAG_ODR_10Hz;
 
@@ -29,7 +29,7 @@ void setup() {
     Serial.println("Magnetometer Error");
   else {
     // probably a good idea to calibrate
-    Serial.println("Calibriating: move the magnetometer all around");
+    Serial.println("Calibrating: move the magnetometer all around");
     delay(4000);
     mag.calibrate();
 
