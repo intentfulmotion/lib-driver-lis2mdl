@@ -1,4 +1,5 @@
 # LIS2MDL
+
 Arduino library for the LIS2MDL magnetometer with communication over SPI / I2C
 
 * Heavily inspired by the [SparkFun LSM6DS3 library](https://github.com/sparkfun/SparkFun_LSM6DS3_Arduino_Library)
@@ -22,14 +23,18 @@ void setup() {
   mag.settings.magSampleRate = LIS2MDL_MAG_ODR_10Hz;
 
   // set up the wire interface
-  mag.begin();
+  mag_status_t result = mag.begin();
 
-  // probably a good idea to calibrate
-  Serial.println("Calibriating: move the magnetometer all around");
-  delay(4000);
-  mag.calibrate();
+  if (result != MAG_SUCCESS)
+    Serial.println("Magnetometer Error");
+  else {
+    // probably a good idea to calibrate
+    Serial.println("Calibriating: move the magnetometer all around");
+    delay(4000);
+    mag.calibrate();
 
-  Serial.println("Calibration Complete");
+    Serial.println("Calibration Complete");
+  }
 }
 
 void loop() {
@@ -46,5 +51,6 @@ void loop() {
 }
 ```
 
-# License Information
+## License Information
+
 This code is released under [the MIT License](LICENSE.md).
