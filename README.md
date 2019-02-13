@@ -18,7 +18,7 @@ void setup() {
   Serial.begin(115200);
 
   // configure the magnetometer
-  // settings below is are default setting
+  // settings below are default setting
   mag.settings.tempCompensationEnabled = LIS2MDL_TEMP_COMPENSATION_ENABLED;
   mag.settings.magSampleRate = LIS2MDL_MAG_ODR_10Hz;
 
