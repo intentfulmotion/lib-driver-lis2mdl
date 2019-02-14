@@ -12,7 +12,6 @@ Arduino library for the LIS2MDL magnetometer with communication over SPI / I2C
 #include <LIS2MDL.h>
 
 LIS2MDL mag;
-
 float x, y, z;
 
 void setup() {
