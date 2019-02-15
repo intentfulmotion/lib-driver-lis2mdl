@@ -76,7 +76,7 @@ typedef enum {
 #define LIS2MDL_DATA_SYNC                 0x10
 #define LIS2MDL_ENDIAN_SWAP               0x08
 #define LIS2MDL_4WSPI                     0x04
-#define LIS2MDL_SELF_TEST                 0x02
+#define LIS2MDL_SELFTEST                  0x02
 #define LIS2MDL_DRDY_ON_PIN               0x01
 
 typedef enum {
@@ -85,14 +85,14 @@ typedef enum {
 } lis2mdlTempCompensation;
 
 typedef enum {
-  LIS2MDL_REBOOT_NORMAL                 = 0x00,
-  LIS2MDL_REBOOT_CLEAR_MEMORY           = LIS2MDL_REBOOT_CLEAR_MEMORY
-} lismdlRebootMode;
+  LIS2MDL_REBOOT_NORMAL_MODE            = 0x00,
+  LIS2MDL_REBOOT_CLEAR_MEMORY_MODE      = LIS2MDL_REBOOT_CLEAR_MEMORY
+} lis2mdlRebootMode;
 
 typedef enum {
-  LIS2MDL_NO_RESET                      = 0x00,
-  LIS2MDL_SOFT_RESET                    = LIS2MDL_SOFT_RESET
-} lismdlResetMode;
+  LIS2MDL_NO_RESET_MODE                 = 0x00,
+  LIS2MDL_SOFT_RESET_MODE               = LIS2MDL_SOFT_RESET
+} lis2mdlResetMode;
 
 typedef enum {
   LIS2MDL_POWERMODE_HIGH                = 0x00,
@@ -208,7 +208,7 @@ struct MagSensorSettings {
     float                               magScaleY;
     float                               magScaleZ;
     float                               magSensitivity;
-}
+};
 
 class LIS2MDL {
   uint8_t deviceId = 0x40;              // 01000000b
@@ -226,13 +226,14 @@ class LIS2MDL {
   public:
     MagSensorSettings settings;
 
-    LIS2MDL(comm_mode_t comm = SPI_MODE, uint8_t inputAddress = 5) : Adafruit_Sensor() {}
-    ~LIS2MDL() : default;
+    LIS2MDL(comm_mode_t comm = SPI_MODE, uint8_t inputAddress = 5);
+    ~LIS2MDL() = default;
 
     uint16_t allOnesCounter;
     uint16_t nonSuccessCounter;
 
     mag_status_t begin();
+    mag_status_t writeSettings();
     void calibrate(uint32_t reads = 4000);
 
     int16_t readRawMagX();
