@@ -1,6 +1,6 @@
 #include "LIS2MDL.h"
 
-LIS2MDL::LIS2MDL(comm_mode_t comm, uint8_t inputAddress) {
+LIS2MDL::LIS2MDL(uint8_t comm, uint8_t inputAddress) {
   commMode = comm;
   address = inputAddress;
   

@@ -3,6 +3,8 @@
 #include <SPI.h>
 
 #define VERSION 1
+#define I2C_MODE 0
+#define SPI_MODE 1
 
 typedef enum
 {
@@ -13,11 +15,6 @@ typedef enum
 	MAG_OUT_OF_BOUNDS,
 	MAG_ALL_ONES_WARNING,
 } mag_status_t;
-
-typedef enum {
-  I2C_MODE,
-  SPI_MODE
-} comm_mode_t;
 
 typedef enum {
   // hard-iron registers
@@ -177,7 +174,7 @@ typedef enum {
 
 struct MagSensorSettings {
   public:
-    comm_mode_t                         commMode;
+    uint8_t                             commMode;
     uint8_t                             address;
     lis2mdlTempCompensation             tempCompensationEnabled;
     lis2mdlRebootMode                   rebootMode;
