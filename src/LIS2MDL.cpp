@@ -6,24 +6,24 @@ LIS2MDL::LIS2MDL(uint8_t comm, uint8_t inputAddress) {
   
   // default settings
   settings.tempCompensationEnabled = LIS2MDL_TEMP_COMPENSATION_ENABLED;
-  settings.rebootMode = LIS2MDL_REBOOT_NORMAL;
-  settings.resetMode = LIS2MDL_NO_RESET;
+  settings.rebootMode = LIS2MDL_REBOOT_NORMAL_MODE;
+  settings.resetMode = LIS2MDL_NO_RESET_MODE;
   settings.powerMode = LIS2MDL_POWERMODE_HIGH;
   settings.magSampleRate = LIS2MDL_MAG_ODR_10Hz;
   settings.operationMode = LIS2MDL_CONTINUOUS_MODE;
 
-  settings.singleModeOffsetCancellationEnabled = 0;
+  settings.singleModeOffsetCancellationEnabled = LIS2MDL_SINGLE_MODE_OFF_CANC_DISABLED;
   settings.checkDataAfterHardIronCorrectionEnabled = LIS2MDL_HARD_IRON_CORRECTION_CHECK;
-  settings.setPulseFrequency = 0;
-  settings.offsetCancellationEnabled = 0;
+  settings.setPulseFrequency = LIS2MDL_RELEASE_EVERY_63_ODR;
+  settings.offsetCancellationEnabled = LIS2MDL_OFFSET_CANCELLATION_DISABLED;
   settings.lowPassFilterEnabled = LIS2MDL_LOW_PASS_FILTER_ENABLED;
 
-  settings.interruptEnabled = 0;
+  settings.interruptEnabled = LIS2MDL_INTERRUPT_DISABLED;
   settings.i2cDisabled = commMode == SPI_MODE ? LIS2MDL_I2C_DISABLED : LIS2MDL_I2C_ENABLED;
   settings.readSafety = LIS2MDL_SAFE_ASYNC_READ;
   settings.endianness = LIS2MDL_BIG_ENDIAN;
   settings.spiConfig = LIS2MDL_4WIRESPI_DISABLED;
-  settings.dataReadyEnabled = 0;
+  settings.dataReadyEnabled = LIS2MDL_DATA_READY_DISABLED;
 
   settings.magSensitivity = 0.0015f;
 
@@ -53,8 +53,8 @@ mag_status_t LIS2MDL::wireUp() {
       SPI.setClockDivider(SPI_CLOCK_DIV4);
       SPI.setBitOrder(MSBFIRST);
 
-      pinMode(chipSelect, OUTPUT);
-      digitalWrite(chipSelect, HIGH);
+      pinMode(address, OUTPUT);
+      digitalWrite(address, HIGH);
       break;
   }
 
@@ -73,18 +73,19 @@ mag_status_t LIS2MDL::wireUp() {
   return result;
 }
 
-void calibrate(uint32_t reads) {
-  int32_t rawMagBias[3] = {0, 0, 0}, rawMagScale = {0, 0, 0};
-  int16_t rawMagMax[3] = {-32767, -32767, -32767}, rawMagMin[3] = {32767, 32767, 32767}, temp = {0, 0, 0};
+void LIS2MDL::calibrate(uint32_t reads) {
+  int32_t rawMagBias[3] = {0, 0, 0}, rawMagScale[3] = {0, 0, 0};
+  int16_t rawMagMax[3] = {-32767, -32767, -32767}, rawMagMin[3] = {32767, 32767, 32767}, temp[3] = {0, 0, 0};
 
   // calculate mins and maxes for X/Y/Z axes
   for (int i = 0; i < 4000; i++) {
     temp[0] = readRawMagX();
     temp[1] = readRawMagY();
     temp[2] = readRawMagZ();
+
     for (int j = 0; j < 3; j++) {
-      if (temp[j] > rawMagMax[j]) rawMagMax = temp[j];
-      if (temp[j] < rawMagMin[j]) rawMagMin = temp[j];
+      if (temp[j] > rawMagMax[j]) rawMagMax[j] = temp[j];
+      if (temp[j] < rawMagMin[j]) rawMagMin[j] = temp[j];
     }
     delay(12);
   }
@@ -93,9 +94,9 @@ void calibrate(uint32_t reads) {
   rawMagBias[1]  = (rawMagMax[1] + rawMagMin[1])/2;  // get average y mag bias in counts
   rawMagBias[2]  = (rawMagMax[2] + rawMagMin[2])/2;  // get average z mag bias in counts
   
-  settings.magBiasX = (float) rawMagBias[0] * _mRes;  // save mag biases in G for main program
-  settings.magBiasY = (float) rawMagBias[1] * _mRes;   
-  settings.magBiasZ = (float) rawMagBias[2] * _mRes;  
+  settings.magBiasX = (float) rawMagBias[0] * settings.magSensitivity;  // save mag biases in G for main program
+  settings.magBiasY = (float) rawMagBias[1] * settings.magSensitivity;
+  settings.magBiasZ = (float) rawMagBias[2] * settings.magSensitivity;
       
   // Get soft iron correction estimate
   rawMagScale[0]  = (rawMagMax[0] - rawMagMin[0])/2;  // get average x axis max chord length in counts
@@ -105,36 +106,36 @@ void calibrate(uint32_t reads) {
   float avg_rad = rawMagScale[0] + rawMagScale[1] + rawMagScale[2];
   avg_rad /= 3.0f;
 
-  settings.magScaleX = avg_rad/((float)mag_scale[0]);
-  settings.magScaleY = avg_rad/((float)mag_scale[1]);
-  settings.magScaleZ = avg_rad/((float)mag_scale[2]);
+  settings.magScaleX = avg_rad/((float)rawMagScale[0]);
+  settings.magScaleY = avg_rad/((float)rawMagScale[1]);
+  settings.magScaleZ = avg_rad/((float)rawMagScale[2]);
 }
 
 int16_t LIS2MDL::readRawMagX() {
-  return readInt16(LIS2MDL_OUT_X_REG_L);
+  return readInt16(LIS2MDL_OUTX_L_REG);
 }
 
 int16_t LIS2MDL::readRawMagY() {
-  return readInt16(LIS2MDL_OUT_Y_REG_L);
+  return readInt16(LIS2MDL_OUTY_L_REG);
 }
 
 int16_t LIS2MDL::readRawMagZ() {
-  return readInt16(LIS2MDL_OUT_Z_REG_L);
+  return readInt16(LIS2MDL_OUTZ_L_REG);
 }
 
 float LIS2MDL::readFloatMagX() {
   // maxBiasX and magScaleX must be set for this to work*
-  return ((float)readRawMagX() * settings.magSensitivity - magBiasX) * magScaleX;
+  return ((float)readRawMagX() * settings.magSensitivity - settings.magBiasX) * settings.magScaleX;
 }
 
 float LIS2MDL::readFloatMagY() {
   // maxBiasY and magScaleY must be set for this to work*
-  return ((float)readRawMagY() * settings.magSensitivity - magBiasY) * magScaleY;
+  return ((float)readRawMagY() * settings.magSensitivity - settings.magBiasY) * settings.magScaleY;
 }
 
 float LIS2MDL::readFloatMagZ() {
   // maxBiasZ and magScaleZ must be set for this to work
-  return ((float)readRawMagZ() * settings.magSensitivity - magBiasZ) * magScaleZ;
+  return ((float)readRawMagZ() * settings.magSensitivity - settings.magBiasZ) * settings.magScaleZ;
 }
 
 int16_t readRawTemp();
@@ -167,22 +168,22 @@ mag_status_t LIS2MDL::writeSettings() {
   configC |= settings.readSafety;
   configC |= settings.endianness;
   configC |= settings.spiConfig;
-  configC |= selfTestEnabled;
-  configC |= dataReadyEnabled;
+  configC |= settings.selfTestEnabled;
+  configC |= settings.dataReadyEnabled;
 
   // write all registers
-  status = writeRegister(LIS2MDL_CFG_REG_A, configA);
+  mag_status_t status = write(LIS2MDL_CFG_REG_A, configA);
   if (status == MAG_SUCCESS)
-    status = writeRegister(LIS2MDL_CFG_REG_A, configB);
+    status = write(LIS2MDL_CFG_REG_B, configB);
   if (status == MAG_SUCCESS)
-    status = writeRegister(LIS2MDL_CFG_REG_A, configC);
+    status = write(LIS2MDL_CFG_REG_C, configC);
 
   return status;
 }
 
 int16_t LIS2MDL::readInt16(lis2mdlRegisters_t offset) {
   uint8_t buffer[2];
-  status_t result = readRegion(offset, buffer, 2);
+  mag_status_t result = readRegion(offset, buffer, 2);
   int16_t output = (int16_t)buffer[0] | int16_t(buffer[1] << 8);
 
   if (result != MAG_SUCCESS) {
@@ -214,8 +215,8 @@ mag_status_t LIS2MDL::readRegion(lis2mdlRegisters_t offset, uint8_t *output, uin
         Wire.requestFrom(address, length);
         while ((Wire.available()) && (i < length)) {
           c = Wire.read();
-          *outputPointer = c;
-          outputPointer++;
+          *output = c;
+          output++;
           i++;
         }
       }
@@ -227,21 +228,21 @@ mag_status_t LIS2MDL::readRegion(lis2mdlRegisters_t offset, uint8_t *output, uin
       while (i < length) {
         c = SPI.transfer(0x00);
         if(c == 0xFF)
-          tempFFCounter++;
+          allOnesCounter++;
 
-        *outputPointer = c;
-        outputPointer++;
+        *output = c;
+        output++;
         i++;
       }
-      if(tempFFCounter == i)
+      if(allOnesCounter == i)
         status = MAG_ALL_ONES_WARNING;
 
-      digitalWrite(chipSelectPin, HIGH);
+      digitalWrite(address, HIGH);
       break;
   }
 }
 
-mag_status_t LIS2MDL::writeRegister(uint8_t offset, uint8_t data) {
+mag_status_t LIS2MDL::write(uint8_t offset, uint8_t data) {
   mag_status_t status = MAG_SUCCESS;
   switch (commMode) {
     case I2C_MODE:
