@@ -247,4 +247,4 @@ class LIS2MDL {
     int16_t readRawTemp();
     float readTempC();
     float readTempF();
-}
+};
