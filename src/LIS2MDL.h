@@ -209,7 +209,7 @@ struct MagSensorSettings {
 
 class LIS2MDL {
   uint8_t deviceId = 0x40;              // 01000000b
-  comm_mode_t commMode;
+  uint8_t commMode;
   uint8_t address;                      // chip select for SPI, I2C address for I2C
 
   mag_status_t wireUp();
@@ -223,7 +223,7 @@ class LIS2MDL {
   public:
     MagSensorSettings settings;
 
-    LIS2MDL(comm_mode_t comm = SPI_MODE, uint8_t inputAddress = 5);
+    LIS2MDL(uint8_t comm = SPI_MODE, uint8_t inputAddress = 5);
     ~LIS2MDL() = default;
 
     uint16_t allOnesCounter;
