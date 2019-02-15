@@ -39,7 +39,7 @@ mag_status_t LIS2MDL::begin() {
     return status;
 
   // write settings to device
-  writeSettings();
+  return writeSettings();
 }
 
 mag_status_t LIS2MDL::wireUp() {
