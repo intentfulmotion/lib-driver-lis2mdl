@@ -19,10 +19,11 @@ LIS2MDL::LIS2MDL(uint8_t comm, uint8_t inputAddress) {
   settings.lowPassFilterEnabled = LIS2MDL_LOW_PASS_FILTER_ENABLED;
 
   settings.interruptEnabled = LIS2MDL_INTERRUPT_DISABLED;
-  settings.i2cDisabled = commMode == SPI_MODE ? LIS2MDL_I2C_DISABLED : LIS2MDL_I2C_ENABLED;
+  settings.i2cDisabled = LIS2MDL_I2C_ENABLED;
   settings.readSafety = LIS2MDL_SAFE_ASYNC_READ;
   settings.endianness = LIS2MDL_BIG_ENDIAN;
   settings.spiConfig = LIS2MDL_4WIRESPI_DISABLED;
+  settings.selfTestEnabled = LIS2MDL_SELFTEST_ENABLED;
   settings.dataReadyEnabled = LIS2MDL_DATA_READY_DISABLED;
 
   settings.magSensitivity = 0.0015f;
@@ -35,22 +36,18 @@ mag_status_t LIS2MDL::begin() {
   mag_status_t status = wireUp();
 
   // don't go further if it failed to start up
-  if (status != MAG_SUCCESS)
-    return status;
-
-  // write settings to device
-  writeSettings();
+  return status;
 }
 
 mag_status_t LIS2MDL::wireUp() {
   mag_status_t result = MAG_SUCCESS;
   switch(commMode) {
     case I2C_MODE:
-      Wire.begin();
+      Wire.begin(23, 18, 1 * 1000 * 1000);
       break;
     case SPI_MODE:
       SPI.begin();
-      SPI.setClockDivider(SPI_CLOCK_DIV4);
+      SPI.setClockDivider(SPI_CLOCK_DIV16);
       SPI.setBitOrder(MSBFIRST);
 
       pinMode(address, OUTPUT);
@@ -171,10 +168,14 @@ mag_status_t LIS2MDL::writeSettings() {
   configC |= settings.selfTestEnabled;
   configC |= settings.dataReadyEnabled;
 
-  // write all registers
+  // write CFG_REG_A
   mag_status_t status = write(LIS2MDL_CFG_REG_A, configA);
+
+  // write CFG_REG_B if A succeeded
   if (status == MAG_SUCCESS)
     status = write(LIS2MDL_CFG_REG_B, configB);
+
+  // write CFG_REG_C if B succeeded
   if (status == MAG_SUCCESS)
     status = write(LIS2MDL_CFG_REG_C, configC);
 
@@ -232,6 +233,7 @@ mag_status_t LIS2MDL::readRegion(lis2mdlRegisters_t offset, uint8_t *output, uin
 
         *output = c;
         output++;
+        ESP_LOGI("Read", "Mag read: %d", c);
         i++;
       }
       if(allOnesCounter == i)
@@ -240,6 +242,8 @@ mag_status_t LIS2MDL::readRegion(lis2mdlRegisters_t offset, uint8_t *output, uin
       digitalWrite(address, HIGH);
       break;
   }
+
+  return status;
 }
 
 mag_status_t LIS2MDL::write(uint8_t offset, uint8_t data) {

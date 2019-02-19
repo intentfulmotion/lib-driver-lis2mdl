@@ -1,6 +1,6 @@
 {
   "name": "LIS2MDL",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "keywords": "stmicro, lis2mdl, magnetometer",
   "description": "Arduino library for communicating with an STMicro LIS2MDL via SPI or I2C",
   "authors": {
