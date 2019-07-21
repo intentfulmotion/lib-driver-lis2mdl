@@ -99,15 +99,15 @@ float LIS2MDL::readFloatMagZ() {
   return (float)readRawMagZ() * settings.magSensitivity;
 }
 
-int16_t readRawTemp() {
+int16_t LIS2MDL::readRawTemp() {
   return readInt16(LIS2MDL_TEMP_OUT_L_REG);
 }
 
-float readTempC() {
-  return (float)readRawTemp / 8.0f + 25.0f;
+float LIS2MDL::readTempC() {
+  return (float)readRawTemp() / 8.0f + 25.0f;
 }
 
-float readTempF() {
+float LIS2MDL::readTempF() {
   return (readTempC() * 9.0f / 5.0f) + 32.0f;
 }
 
