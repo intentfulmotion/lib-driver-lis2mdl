@@ -205,6 +205,7 @@ mag_status_t LIS2MDL::readRegion(lis2mdlRegisters_t offset, uint8_t *output, uin
 
         *output = c;
         output++;
+        ESP_LOGI("Read", "Mag read: %d", c);
         i++;
       }
       if(allOnesCounter == i)
