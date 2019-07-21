@@ -13,49 +13,51 @@ LIS2MDL::LIS2MDL(uint8_t comm, uint8_t inputAddress) {
   settings.operationMode = LIS2MDL_CONTINUOUS_MODE;
 
   settings.singleModeOffsetCancellationEnabled = LIS2MDL_SINGLE_MODE_OFF_CANC_DISABLED;
-  settings.checkDataAfterHardIronCorrectionEnabled = LIS2MDL_HARD_IRON_CORRECTION_CHECK;
+  settings.checkDataAfterHardIronCorrectionEnabled = LIS2MDL_HARD_IRON_CORRECTION_NO_CHECK;
   settings.setPulseFrequency = LIS2MDL_RELEASE_EVERY_63_ODR;
   settings.offsetCancellationEnabled = LIS2MDL_OFFSET_CANCELLATION_DISABLED;
   settings.lowPassFilterEnabled = LIS2MDL_LOW_PASS_FILTER_ENABLED;
 
   settings.interruptEnabled = LIS2MDL_INTERRUPT_DISABLED;
-  settings.i2cDisabled = commMode == SPI_MODE ? LIS2MDL_I2C_DISABLED : LIS2MDL_I2C_ENABLED;
+  settings.i2cDisabled = LIS2MDL_I2C_ENABLED;
   settings.readSafety = LIS2MDL_SAFE_ASYNC_READ;
   settings.endianness = LIS2MDL_BIG_ENDIAN;
   settings.spiConfig = LIS2MDL_4WIRESPI_DISABLED;
-  settings.dataReadyEnabled = LIS2MDL_DATA_READY_DISABLED;
+  settings.selfTestEnabled = LIS2MDL_SELFTEST_DISABLED;
+  settings.dataReadyEnabled = LIS2MDL_DATA_READY_ENABLED;
 
-  settings.magSensitivity = 0.0015f;
+  settings.magSensitivity = 1.5f;
 
   allOnesCounter = 0;
   nonSuccessCounter = 0;
 }
 
-mag_status_t LIS2MDL::begin() {
-  mag_status_t status = wireUp();
+mag_status_t LIS2MDL::begin(bool bypassWireInit) {
+  mag_status_t status = wireUp(bypassWireInit);
 
   // don't go further if it failed to start up
-  if (status != MAG_SUCCESS)
-    return status;
-
-  // write settings to device
-  return writeSettings();
+  return status;
 }
 
-mag_status_t LIS2MDL::wireUp() {
+mag_status_t LIS2MDL::wireUp(bool bypassWireInit) {
   mag_status_t result = MAG_SUCCESS;
-  switch(commMode) {
-    case I2C_MODE:
-      Wire.begin();
-      break;
-    case SPI_MODE:
-      SPI.begin();
-      SPI.setClockDivider(SPI_CLOCK_DIV4);
-      SPI.setBitOrder(MSBFIRST);
 
-      pinMode(address, OUTPUT);
-      digitalWrite(address, HIGH);
-      break;
+  if (!bypassWireInit) {
+    switch(commMode) {
+      case I2C_MODE:
+        pinMode(21,INPUT_PULLUP);
+        pinMode(22,INPUT_PULLUP);
+        Wire.begin(21, 22, 1 * 1000 * 1000);
+        break;
+      case SPI_MODE:
+        SPI.begin();
+        SPI.setClockDivider(SPI_CLOCK_DIV16);
+        SPI.setBitOrder(MSBFIRST);
+
+        pinMode(address, OUTPUT);
+        digitalWrite(address, HIGH);
+        break;
+    }
   }
 
   //Spin for a few ms
@@ -73,44 +75,6 @@ mag_status_t LIS2MDL::wireUp() {
   return result;
 }
 
-void LIS2MDL::calibrate(uint32_t reads) {
-  int32_t rawMagBias[3] = {0, 0, 0}, rawMagScale[3] = {0, 0, 0};
-  int16_t rawMagMax[3] = {-32767, -32767, -32767}, rawMagMin[3] = {32767, 32767, 32767}, temp[3] = {0, 0, 0};
-
-  // calculate mins and maxes for X/Y/Z axes
-  for (int i = 0; i < 4000; i++) {
-    temp[0] = readRawMagX();
-    temp[1] = readRawMagY();
-    temp[2] = readRawMagZ();
-
-    for (int j = 0; j < 3; j++) {
-      if (temp[j] > rawMagMax[j]) rawMagMax[j] = temp[j];
-      if (temp[j] < rawMagMin[j]) rawMagMin[j] = temp[j];
-    }
-    delay(12);
-  }
-
-  rawMagBias[0]  = (rawMagMax[0] + rawMagMin[0])/2;  // get average x mag bias in counts
-  rawMagBias[1]  = (rawMagMax[1] + rawMagMin[1])/2;  // get average y mag bias in counts
-  rawMagBias[2]  = (rawMagMax[2] + rawMagMin[2])/2;  // get average z mag bias in counts
-  
-  settings.magBiasX = (float) rawMagBias[0] * settings.magSensitivity;  // save mag biases in G for main program
-  settings.magBiasY = (float) rawMagBias[1] * settings.magSensitivity;
-  settings.magBiasZ = (float) rawMagBias[2] * settings.magSensitivity;
-      
-  // Get soft iron correction estimate
-  rawMagScale[0]  = (rawMagMax[0] - rawMagMin[0])/2;  // get average x axis max chord length in counts
-  rawMagScale[1]  = (rawMagMax[1] - rawMagMin[1])/2;  // get average y axis max chord length in counts
-  rawMagScale[2]  = (rawMagMax[2] - rawMagMin[2])/2;  // get average z axis max chord length in counts
-
-  float avg_rad = rawMagScale[0] + rawMagScale[1] + rawMagScale[2];
-  avg_rad /= 3.0f;
-
-  settings.magScaleX = avg_rad/((float)rawMagScale[0]);
-  settings.magScaleY = avg_rad/((float)rawMagScale[1]);
-  settings.magScaleZ = avg_rad/((float)rawMagScale[2]);
-}
-
 int16_t LIS2MDL::readRawMagX() {
   return readInt16(LIS2MDL_OUTX_L_REG);
 }
@@ -124,23 +88,28 @@ int16_t LIS2MDL::readRawMagZ() {
 }
 
 float LIS2MDL::readFloatMagX() {
-  // maxBiasX and magScaleX must be set for this to work*
-  return ((float)readRawMagX() * settings.magSensitivity - settings.magBiasX) * settings.magScaleX;
+  return (float)readRawMagX() * settings.magSensitivity;
 }
 
 float LIS2MDL::readFloatMagY() {
-  // maxBiasY and magScaleY must be set for this to work*
-  return ((float)readRawMagY() * settings.magSensitivity - settings.magBiasY) * settings.magScaleY;
+  return (float)readRawMagY() * settings.magSensitivity;
 }
 
 float LIS2MDL::readFloatMagZ() {
-  // maxBiasZ and magScaleZ must be set for this to work
-  return ((float)readRawMagZ() * settings.magSensitivity - settings.magBiasZ) * settings.magScaleZ;
+  return (float)readRawMagZ() * settings.magSensitivity;
 }
 
-int16_t readRawTemp();
-float readTempC();
-float readTempF();
+int16_t readRawTemp() {
+  return readInt16(LIS2MDL_TEMP_OUT_L_REG);
+}
+
+float readTempC() {
+  return (float)readRawTemp / 8.0f + 25.0f;
+}
+
+float readTempF() {
+  return (readTempC() * 9.0f / 5.0f) + 32.0f;
+}
 
 mag_status_t LIS2MDL::writeSettings() {
   uint8_t configA = 0;
@@ -171,10 +140,14 @@ mag_status_t LIS2MDL::writeSettings() {
   configC |= settings.selfTestEnabled;
   configC |= settings.dataReadyEnabled;
 
-  // write all registers
+  // write CFG_REG_A
   mag_status_t status = write(LIS2MDL_CFG_REG_A, configA);
+
+  // write CFG_REG_B if A succeeded
   if (status == MAG_SUCCESS)
     status = write(LIS2MDL_CFG_REG_B, configB);
+
+  // write CFG_REG_C if B succeeded
   if (status == MAG_SUCCESS)
     status = write(LIS2MDL_CFG_REG_C, configC);
 
@@ -240,6 +213,8 @@ mag_status_t LIS2MDL::readRegion(lis2mdlRegisters_t offset, uint8_t *output, uin
       digitalWrite(address, HIGH);
       break;
   }
+
+  return status;
 }
 
 mag_status_t LIS2MDL::write(uint8_t offset, uint8_t data) {
@@ -262,4 +237,13 @@ mag_status_t LIS2MDL::write(uint8_t offset, uint8_t data) {
       break;
   }
   return status;
+}
+
+void LIS2MDL::reset() {
+  uint8_t state;
+  read(LIS2MDL_CFG_REG_A, &state);
+  write(LIS2MDL_CFG_REG_A, state | LIS2MDL_SOFT_RESET);
+  delay(1);
+  write(LIS2MDL_CFG_REG_A, state | LIS2MDL_REBOOT_CLEAR_MEMORY);
+  delay(100);
 }

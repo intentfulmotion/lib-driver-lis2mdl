@@ -98,9 +98,9 @@ typedef enum {
 
 typedef enum {
   LIS2MDL_MAG_ODR_10Hz                  = 0x00,   // 10 Hz
-  LIS2MDL_MAG_ODR_20Hz                  = 0x01,   // 20 Hz
-  LIS2MDL_MAG_ODR_50Hz                  = 0x02,   // 50 Hz
-  LIS2MDL_MAG_ODR_100Hz                 = 0x03    // 100 Hz
+  LIS2MDL_MAG_ODR_20Hz                  = 0x04,   // 20 Hz
+  LIS2MDL_MAG_ODR_50Hz                  = 0x08,   // 50 Hz
+  LIS2MDL_MAG_ODR_100Hz                 = 0x0C    // 100 Hz
 } lis2mdlOutputDataRate;
 
 typedef enum {
@@ -212,7 +212,7 @@ class LIS2MDL {
   uint8_t commMode;
   uint8_t address;                      // chip select for SPI, I2C address for I2C
 
-  mag_status_t wireUp();
+  mag_status_t wireUp(bool bypassWireInit = false);
 
   int16_t readInt16(lis2mdlRegisters_t offset);
 
@@ -229,9 +229,10 @@ class LIS2MDL {
     uint16_t allOnesCounter;
     uint16_t nonSuccessCounter;
 
-    mag_status_t begin();
+    mag_status_t begin(bool bypassWireInit = false);
     mag_status_t writeSettings();
     void calibrate(uint32_t reads = 4000);
+    void reset();
 
     int16_t readRawMagX();
     int16_t readRawMagY();
